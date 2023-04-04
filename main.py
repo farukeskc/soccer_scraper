@@ -24,7 +24,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 import threading
-
+import random
 
 def reload(driver: webdriver.Firefox):
     driver.refresh()
@@ -42,12 +42,13 @@ def table_next_page(driver):
 def error_handler(driver):
     try:
         while True:
-            if driver.title == "Error | Transfermarkt" or driver.find_element(By.TAG_NAME,
+            if "Error" in driver.title or driver.find_element(By.TAG_NAME,
                                                                               "h1").text == "503 Service Unavailable":
                 reload(driver)
             else:
                 break
     except:
+        print(driver.title)
         driver.save_screenshot("{}.jpeg".format(str(time.time())))
 
 def close_popup(driver: webdriver.Firefox):
@@ -73,7 +74,13 @@ def get_player(driver: webdriver.Firefox, player_id: str, profile_url: str):
     other_position2 = ""
     current_international = ""
 
-    full_name = driver.find_element(By.CLASS_NAME, "data-header__headline-wrapper").text
+    try:
+        full_name = driver.find_element(By.CLASS_NAME, "data-header__headline-wrapper").text
+    except:
+        driver.save_screenshot("get_player_error{}.jpeg".format(random.randint(0,10000)))
+        return -1
+
+
     if full_name.find("#") != -1:
         full_name = full_name[full_name.find(" ") + 1:]
 
@@ -180,9 +187,10 @@ def get_goals(driver: webdriver.Firefox, player_id, profile_url):
 
     error_handler(driver)
 
-    wait.until(EC.title_contains("All goals (Detailed view) | Transfermarkt"))
+
 
     try:
+        wait.until(EC.title_contains("All goals (Detailed view) | Transfermarkt"))
         goals_table_rows = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "responsive-table"))).find_element(
             By.TAG_NAME,
             "tbody").find_elements(
@@ -242,10 +250,11 @@ def get_injury_history(driver: webdriver.Firefox, player_id, profile_url):
 
     error_handler(driver)
 
-    wait.until(EC.title_contains("Injury history (Detailed view) | Transfermarkt"))
+
 
     while (True):
         try:
+            wait.until(EC.title_contains("Injury history (Detailed view) | Transfermarkt"))
             injury_table_rows = driver.find_element(By.CLASS_NAME, "items").find_element(By.TAG_NAME,
                                                                                          "tbody").find_elements(
                 By.TAG_NAME, "tr")
@@ -403,6 +412,7 @@ def get_achievements(driver: webdriver.Firefox, player_id, profile_url):
     achievements = []
     achievements_url = profile_url.replace("profil", "erfolge")
     driver.get(achievements_url)
+    error_handler(driver)
     try:
         boxes = driver.find_elements(By.CLASS_NAME, "large-6")
         for box in boxes:
@@ -422,6 +432,7 @@ def get_squad_numbers(driver: webdriver.Firefox, player_id, profile_url):
     squad_numbers = []
     squad_numbers_url = profile_url.replace("profil", "rueckennummern")
     driver.get(squad_numbers_url)
+    error_handler(driver)
     try:
         rows = driver.find_element(By.CLASS_NAME, "items").find_element(By.TAG_NAME, "tbody").find_elements(
             By.TAG_NAME,
@@ -525,7 +536,7 @@ def hello(links: list, index:int):
 
     close_popup(driver)
 
-    links = links[800:900]
+    links = links[2600:]
 
     for profile_url in links:
         player_id = uuid.uuid4()
@@ -534,6 +545,7 @@ def hello(links: list, index:int):
         # GENERAL INFORMATION
         player = get_player(driver, player_id, profile_url)
         if player == -1:
+            print("Player Passed")
             continue
         else:
             all_players.append(player)
